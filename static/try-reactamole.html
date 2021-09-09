@@ -12,10 +12,12 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/haskell/haskell.min.js"></script>
   <style>
-    .CodeMirror-gutters {
-      border-right: 1px solid #000000;
-      background-color: #f7f7f7;
-      white-space: nowrap;
+    .CodeMirror {
+      font: 1em Fira Mono, DejaVu Sans Mono, Menlo, Consolas, Liberation Mono, Monaco, Lucida Console, monospace;
+    }
+    #output {
+      width: 100%;
+      font: 1em Fira Mono, DejaVu Sans Mono, Menlo, Consolas, Liberation Mono, Monaco, Lucida Console, monospace;
     }
   </style>
 </head>
@@ -48,9 +50,6 @@
 -- The negation of nand, i.e., and.
 toIVP $ nandCRN >>> notCRN
 
--- A sin wave.
-toRxns $ (loop $ proj2 >>> negateCRN >>> integrate 1 >>> integrate 0 >>> dupCRN :: CRN Double Double)
-
 -- | CRN for the exponential function.
 toRxns $ (loop (proj2 >>> integrate 1 >>> dupCRN) :: CRN Double Double)
         </pre>
@@ -72,27 +71,38 @@ toRxns $ (loop (proj2 >>> integrate 1 >>> dupCRN) :: CRN Double Double)
       </ul>
     </div>
     <div class="pure-u-1-2">
-      <div id="code"></div>
-      <div><button class="pure-button-primary" type="button" onclick="run()">Run</button></div>
+      <div id="editor">
+        <div id="defnsEditor"></div>
+        <div id="exprEditor"></div>
+      </div>
+      <div>
+        <button class="pure-button-primary" type="button" onclick="run('toIVP');">IVP</button>
+        <button class="pure-button-primary" type="button" onclick="run('toRxns');">Reactions</button>
+      </div>
       <div><pre id="output">Output</pre></div>
     </div>
   </div>
 
   <script>
-  var editor = null;
+  var defnsEditor = CodeMirror(document.getElementById("defnsEditor"), {
+    value: "-- Declarations go here, one per line\nlet sin = loop $ proj2 >>> negateCRN >>>\n  integrate 1 >>> integrate 0 >>> dupCRN \n  :: CRN () Double",
+    lineNumbers: true,
+    mode: "haskell"
+  });
+  var exprEditor = CodeMirror(document.getElementById("exprEditor"), {
+        value: "-- A CRN expression to be evaluated goes here\nnandCRN >>> notCRN",
+    lineNumbers: true,
+    mode: "haskell"
+  });
 
-  (function() {
-    editor = CodeMirror(document.getElementById("code"), {
-      value: "toRxns nandCRN\n",
-      mode: "haskell",
-      lineNumbers: true
-    });
-  })();
-
-  function run() {
+  function run(cmd) {
     fetch("/evaluate", {
-      method: "POST",
-      body: editor.getValue()
+      method: 'post',
+      headers: {
+        'Accept': 'application/json, text/plain, */*',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ decls : defnsEditor.getValue(), expr : cmd + "\n" + "(" + "\n" + exprEditor.getValue() + "\n" + ")" })
     }).then(response => {
       response.json().then(res => {
         console.log(res);

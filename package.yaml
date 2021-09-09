@@ -8,7 +8,6 @@ copyright:           "2021 Author name here"
 
 extra-source-files:
 - README.md
-- ChangeLog.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -25,6 +24,7 @@ dependencies:
 - hint
 - aeson
 - servant-server
+- text
 - wai
 - warp
 
