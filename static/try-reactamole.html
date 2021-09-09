@@ -1,0 +1,107 @@
+<!doctype html>
+
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Try Reactamole!</title>
+  <!-- Pure CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/purecss@2.0.6/build/pure-min.css" integrity="sha384-Uu6IeWbM+gzNVXJcM9XV3SohHtmWE+3VGi496jvgX1jyvDTXfdK+rfZc8C1Aehk5" crossorigin="anonymous">
+  <!-- CodeMirror -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/codemirror.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.62.3/mode/haskell/haskell.min.js"></script>
+  <style>
+    .CodeMirror-gutters {
+      border-right: 1px solid #000000;
+      background-color: #f7f7f7;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="pure-g">
+    <div class="pure-u-1-2">
+      <h1>Reactamole</h1>
+      <p>
+        Reactamole is a domain-specific language for molecular programming that
+        utilizes reactive functional programming principles. Reactamole
+        observes a direct correspondence between signal functions in a reactive
+        functional program (FRP) and chemical reaction networks (CRNs) in a
+        molecular program. This correspondence allows us to directly translate
+        the core combinators of (arrowized) FRP to CRNs. Because Reactamole is
+        embedded in the Haskell programming language, it takes advantage of
+        Haskell's rich type system to ensure the well-formedness of the
+        resulting chemical reaction networks.
+      </p>
+      <h2>Usage</h2>
+      <p>
+        As a embedded domain-specific language, Reactamole programs are really
+        Haskell programs. This simple editor exposes a simple REPL-style
+        interface where you can enter Reactamole programs (<em>i.e.</em>,
+        Haskell expressions) and observe the outputs.
+      </p>
+      <p>
+        Here are some examples for you to try out:
+        <pre style="font-size:0.8em;">
+-- The negation of nand, i.e., and.
+toIVP $ nandCRN >>> notCRN
+
+-- A sin wave.
+toRxns $ (loop $ proj2 >>> negateCRN >>> integrate 1 >>> integrate 0 >>> dupCRN :: CRN Double Double)
+
+-- | CRN for the exponential function.
+toRxns $ (loop (proj2 >>> integrate 1 >>> dupCRN) :: CRN Double Double)
+        </pre>
+      </p>
+      <p>
+        For more in-depth exploration, we recommend downloading the
+        <tt>haskell-reactamole</tt> source code directly from our Github
+        repository.
+      </p>
+      <h2>Sources and Publication</h2>
+      <ul>
+        <li><a href="https://github.com/digMP/haskell-reactamole">Github Repository (digMP/haskell-reactamole)</a></li>
+        <li> Titus H. Klinge, James I. Lathrop, Peter-Michael Osera, and
+          Allison Rogers. Reactamole: Functional Reactive Molecular
+          Programming. 27th International Conference on DNA Computing and
+          Molecular Programming (DNA '27). September, 2020, Oxford, UK.
+          DOI:<a href="https://drops.dagstuhl.de/opus/volltexte/2021/14677/">10.4230/LIPIcs.DNA.27.10</a>
+        </li>
+      </ul>
+    </div>
+    <div class="pure-u-1-2">
+      <div id="code"></div>
+      <div><button class="pure-button-primary" type="button" onclick="run()">Run</button></div>
+      <div><pre id="output">Output</pre></div>
+    </div>
+  </div>
+
+  <script>
+  var editor = null;
+
+  (function() {
+    editor = CodeMirror(document.getElementById("code"), {
+      value: "toRxns nandCRN\n",
+      mode: "haskell",
+      lineNumbers: true
+    });
+  })();
+
+  function run() {
+    fetch("/evaluate", {
+      method: "POST",
+      body: editor.getValue()
+    }).then(response => {
+      response.json().then(res => {
+        console.log(res);
+        if (res.success) {
+          document.getElementById("output").innerHTML = res.output
+        } else {
+          document.getElementById("output").innerHTML = "An error occurred: " + res.output;
+        }
+    })});
+  }
+  </script>
+</body>
