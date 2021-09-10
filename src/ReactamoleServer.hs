@@ -45,8 +45,13 @@ parseDecls = collapse Nothing . map strip . lines
 
 evalProg :: String -> String -> IO (Either Hint.InterpreterError String)
 evalProg decls expr = Hint.runInterpreter $ do
-  Hint.set [Hint.languageExtensions Hint.:= [Hint.GADTs]]
-  Hint.setImports ["Prelude", "Bio.Reactamole", "Bio.Reactamole.Export"]
+  Hint.set [Hint.languageExtensions Hint.:= [Hint.GADTs, Hint.ScopedTypeVariables]]
+  Hint.setImports [ "Prelude"
+                  , "Bio.Reactamole"
+                  , "Bio.Reactamole.ArrChoice"
+                  , "Bio.Reactamole.Examples"
+                  , "Bio.Reactamole.Export"
+                  ]
   mapM_ Hint.runStmt (parseDecls decls)
   Hint.eval $ combineLines expr
     where
