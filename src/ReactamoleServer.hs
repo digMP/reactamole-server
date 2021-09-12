@@ -46,7 +46,7 @@ parseDecls = collapse Nothing . map strip . lines
 
 evalProg :: String -> String -> IO (Either Hint.InterpreterError String)
 evalProg decls expr = do
-  result <- timeout 1000000 $ Hint.runInterpreter script
+  result <- timeout 3000000 $ Hint.runInterpreter script
   pure $ case result of
     Nothing -> Left $ Hint.UnknownError "Timeout"
     Just v  -> v
