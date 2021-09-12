@@ -42,7 +42,7 @@ packages:
 
 extra-deps:
 - git: https://github.com/digMP/haskell-reactamole.git
-  commit: c98acd98633b194e83cfd1e748404709a7b379c6
+  commit: 3da1d70f45faa668e83e41b71e6dcb9487725bf9
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

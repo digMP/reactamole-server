@@ -20,6 +20,7 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
 import System.Environment
+import System.Timeout
 
 import qualified Language.Haskell.Interpreter as Hint
 import qualified Data.List as L
@@ -44,24 +45,29 @@ parseDecls = collapse Nothing . map strip . lines
       | otherwise            = collapse (Just $ stmt ++ " " ++ l) ls
 
 evalProg :: String -> String -> IO (Either Hint.InterpreterError String)
-evalProg decls expr = Hint.runInterpreter $ do
-  Hint.set [Hint.languageExtensions Hint.:= [Hint.GADTs, Hint.ScopedTypeVariables]]
-  Hint.setImports [ "Prelude"
-                  , "Bio.Reactamole"
-                  , "Bio.Reactamole.ArrChoice"
-                  , "Bio.Reactamole.Examples"
-                  , "Bio.Reactamole.Export"
-                  ]
-  mapM_ Hint.runStmt (parseDecls decls)
-  Hint.eval $ combineLines expr
-    where
-      combineLines :: String -> String
-      combineLines =
-        unwords
-        . filter (not . ("--" `isPrefixOf`))
-        . filter (not . null)
-        . map strip
-        . lines
+evalProg decls expr = do
+  result <- timeout 1000000 $ Hint.runInterpreter script
+  pure $ case result of
+    Nothing -> Left $ Hint.UnknownError "Timeout"
+    Just v  -> v
+  where
+    script = do
+      Hint.set [Hint.languageExtensions Hint.:= [Hint.GADTs, Hint.ScopedTypeVariables]]
+      Hint.setImports [ "Prelude"
+                      , "Bio.Reactamole"
+                      , "Bio.Reactamole.ArrChoice"
+                      , "Bio.Reactamole.Examples"
+                      , "Bio.Reactamole.Export"
+                      ]
+      mapM_ Hint.runStmt (parseDecls decls)
+      Hint.eval $ combineLines expr
+
+    combineLines =
+      unwords
+      . filter (not . ("--" `isPrefixOf`))
+      . filter (not . null)
+      . map strip
+      . lines
 
 ----- }}} ----------------------------------------------------------------------
 
