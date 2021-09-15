@@ -20,7 +20,6 @@ import Network.Wai
 import Network.Wai.Handler.Warp
 import Servant
 import System.Environment
-import System.Timeout
 
 import qualified Language.Haskell.Interpreter as Hint
 import qualified Data.List as L
@@ -45,20 +44,21 @@ parseDecls = collapse Nothing . map strip . lines
       | otherwise            = collapse (Just $ stmt ++ " " ++ l) ls
 
 evalProg :: String -> String -> IO (Either Hint.InterpreterError String)
-evalProg decls expr = do
-  result <- timeout 3000000 $ Hint.runInterpreter script
-  pure $ case result of
-    Nothing -> Left $ Hint.UnknownError "Timeout"
-    Just v  -> v
+evalProg decls expr = Hint.runInterpreter script
   where
+    preludeIOFns = [ "putChar", "putStr", "putStrLn", "print", "getChar", "getLine"
+                   , "getContents", "interact", "readFile", "writeFile", "appendFile"
+                   , "readIO", "readLn"
+                   ]
+    importAll mod = Hint.ModuleImport mod Hint.NotQualified Hint.NoImportList
     script = do
       Hint.set [Hint.languageExtensions Hint.:= [Hint.GADTs, Hint.ScopedTypeVariables]]
-      Hint.setImports [ "Prelude"
-                      , "Bio.Reactamole"
-                      , "Bio.Reactamole.ArrChoice"
-                      , "Bio.Reactamole.Examples"
-                      , "Bio.Reactamole.Export"
-                      ]
+      Hint.setImportsF
+        [ Hint.ModuleImport "Prelude" Hint.NotQualified (Hint.HidingList preludeIOFns)
+        , importAll "Bio.Reactamole"
+        , importAll "Bio.Reactamole.Examples"
+        , importAll "Bio.Reactamole.Export"
+        ]
       mapM_ Hint.runStmt (parseDecls decls)
       Hint.eval $ combineLines expr
 
@@ -99,8 +99,17 @@ server = result :<|> serveDirectoryWebApp "static"
     result (EvaluateA decls expr) = do
       result <- liftIO $ evalProg decls expr
       pure $ case result of
-        Left err     -> EvaluateR False (show err)
+        Left err     -> EvaluateR False (prettyError err)
         Right output -> EvaluateR True output
+    prettyError (Hint.UnknownError reason) =
+      "An unknown error occurred:\n  " ++ reason
+    prettyError (Hint.WontCompile ghcErrs) =
+      unlines $ map Hint.errMsg ghcErrs
+    prettyError (Hint.NotAllowed reason) =
+      "The operation was not allowed:\n  " ++ reason
+    prettyError (Hint.GhcException exn) =
+      "A GHC exception occurred:\n" ++ exn
+
 
 ----- }}} ----------------------------------------------------------------------
 
