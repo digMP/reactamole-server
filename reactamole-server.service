@@ -2,9 +2,9 @@
 Description="Reactamole webserver"
 
 [Service]
-User=root
-WorkingDirectory=/
-ExecStart=/usr/bin/reactamole-server 8035
+User=reactamole
+WorkingDirectory=/home/reactamole/reactamole-server
+ExecStart=stack exec reactamole-server -- 8035
 Restart=always
 RuntimeMaxSec=216000
 
