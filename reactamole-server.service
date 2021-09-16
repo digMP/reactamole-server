@@ -1,0 +1,12 @@
+[Unit]
+Description="Reactamole webserver"
+
+[Service]
+User=root
+WorkingDirectory=/
+ExecStart=/usr/bin/reactamole-server 8035
+Restart=always
+RuntimeMaxSec=216000
+
+[Install]
+WantedBy=multi-user.target
